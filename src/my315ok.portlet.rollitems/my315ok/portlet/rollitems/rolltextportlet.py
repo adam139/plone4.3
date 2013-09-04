@@ -27,8 +27,9 @@ class IRollTextPortlet(IPortletDataProvider):
     target_collection = schema.Choice(title=_a(u"Target collection"),
                                   description=_a(u"Find the collection which provides the items to list"),
                                   required=False,
-                                  source=SearchableTextSourceBinder({'object_provides' : IATTopic.__identifier__},
-                                                                    default_query='path:'))
+                                  source=SearchableTextSourceBinder(
+            {'portal_type': ('Topic', 'Collection')},
+            default_query='path:'))
     			  
     show_more = schema.Bool(title=_a(u"Show more... link"),
                        description=_a(u"If enabled, a more... link will appear in the footer of the portlet, "

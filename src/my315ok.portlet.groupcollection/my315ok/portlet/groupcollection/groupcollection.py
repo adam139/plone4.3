@@ -1,4 +1,5 @@
 from zope.interface import implements
+from AccessControl import getSecurityManager
 
 from plone.portlets.interfaces import IPortletDataProvider
 from plone.app.portlets.portlets import base
@@ -57,24 +58,28 @@ class Igroupcollection(IPortletDataProvider):
     target_collection = schema.Choice(title=_p(u"Target collection"),
                                   description=_p(u"Find the collection which provides the items to list"),
                                   required=True,
-                                  source=SearchableTextSourceBinder({'object_provides' : IATTopic.__identifier__},
-                                                                    default_query='path:'))
+                                  source=SearchableTextSourceBinder(
+            {'portal_type': ('Topic', 'Collection')},
+            default_query='path:'))
     target_collection2 = schema.Choice(title=_p(u"Target collection"),
                                   description=_p(u"Find the collection which provides the items to list"),
                                   required=True,
-                                  source=SearchableTextSourceBinder({'object_provides' : IATTopic.__identifier__},
-                                                                    default_query='path:'))
+                                  source=SearchableTextSourceBinder(
+            {'portal_type': ('Topic', 'Collection')},
+            default_query='path:'))
     target_collection3 = schema.Choice(title=_p(u"Target collection"),
                                   description=_p(u"Find the collection which provides the items to list"),
                                   required=True,
-                                  source=SearchableTextSourceBinder({'object_provides' : IATTopic.__identifier__},
-                                                                    default_query='path:'))
+                                  source=SearchableTextSourceBinder(
+            {'portal_type': ('Topic', 'Collection')},
+            default_query='path:'))
     
     target_collection4 = schema.Choice(title=_p(u"Target collection"),
                                   description=_p(u"Find the collection which provides the items to list"),
                                   required=True,
-                                  source=SearchableTextSourceBinder({'object_provides' : IATTopic.__identifier__},
-                                                                    default_query='path:'))
+                                  source=SearchableTextSourceBinder(
+            {'portal_type': ('Topic', 'Collection')},
+            default_query='path:'))
 
     limit = schema.Int(title=_p(u"Limit"),
                        description=_p(u"Specify the maximum number of items to show in the portlet. "
@@ -168,247 +173,102 @@ class Renderer(baseRenderer):
     
     @property
     def available(self):
-        s = self.available1 + self.available3 + self.available2 + self.available4
+        s = self.available1 or self.available3 or self.available2 or self.available4
         return s
         
     @property
     def available1(self):
-        return len(self.results())
+        return len(self.results(self.data.target_collection))
     @property
     def available2(self):
-        return len(self.results2())
+        return len(self.results(self.data.target_collection2))
     
     @property
     def available3(self):
-        return len(self.results3())    
+        return len(self.results(self.data.target_collection3))    
     
     @property
     def available4(self):
-        return len(self.results4())        
+        return len(self.results(self.data.target_collection4))        
     
-    def collection_url3(self):
-        collection = self.collection3()
-        if collection is None:
-            return None
-        else:
-            return collection.absolute_url()
-        
-    def collection_url4(self):
-        collection = self.collection4()
-        if collection is None:
-            return None
-        else:
-            return collection.absolute_url()        
 
-    def results3(self):
-        """ Get the actual result brains from the collection. 
-            This is a wrapper so that we can memoize if and only if we aren't
-            selecting random items."""
-        if self.data.random:
-            return self._random_results3()
-        else:
-            return self._standard_results3()
-        
 
-    def results4(self):
-        """ Get the actual result brains from the collection. 
-            This is a wrapper so that we can memoize if and only if we aren't
-            selecting random items."""
-        if self.data.random:
-            return self._random_results4()
-        else:
-            return self._standard_results4()        
-        
-    def _random_results3(self):
-        results = []
-        collection = self.collection3()
-        if collection is not None:
-            """
-            Kids, do not try this at home.
-            
-            We're poking at the internals of the (lazy) catalog results to avoid
-            instantiating catalog brains unnecessarily.
-            
-            We're expecting a LazyCat wrapping two LazyMaps as the return value from
-            Products.ATContentTypes.content.topic.ATTopic.queryCatalog.  The second
-            of these contains the results of the catalog query.  We force sorting
-            off because it's unnecessary and might result in a different structure of
-            lazy objects.
-            
-            Using the correct LazyMap (results._seq[1]), we randomly pick a catalog index
-            and then retrieve it as a catalog brain using the _func method.
-            """
-            
-            results = collection.queryCatalog(sort_on=None)
-            limit = self.data.limit and min(len(results), self.data.limit) or 1
-            try:
-                results = [results._seq[1]._func(i) for i in random.sample(results._seq[1]._seq, limit)]
-            except AttributeError, IndexError:
-                # This handles the cases where the lazy objects returned by the catalog
-                # are structured differently than expected.
-                results = []
-        return results
-
-    @memoize
-    def _standard_results3(self):
-        results = []
-        collection = self.collection3()
-        if collection is not None:
-            results = collection.queryCatalog()
-            if self.data.limit and self.data.limit > 0:
-                results = results[:self.data.limit]
-        return results
-
-    def _random_results4(self):
-        results = []
-        collection = self.collection4()
-        if collection is not None:
-            """
-            Kids, do not try this at home.
-            
-            We're poking at the internals of the (lazy) catalog results to avoid
-            instantiating catalog brains unnecessarily.
-            
-            We're expecting a LazyCat wrapping two LazyMaps as the return value from
-            Products.ATContentTypes.content.topic.ATTopic.queryCatalog.  The second
-            of these contains the results of the catalog query.  We force sorting
-            off because it's unnecessary and might result in a different structure of
-            lazy objects.
-            
-            Using the correct LazyMap (results._seq[1]), we randomly pick a catalog index
-            and then retrieve it as a catalog brain using the _func method.
-            """
-            
-            results = collection.queryCatalog(sort_on=None)
-            limit = self.data.limit and min(len(results), self.data.limit) or 1
-            try:
-                results = [results._seq[1]._func(i) for i in random.sample(results._seq[1]._seq, limit)]
-            except AttributeError, IndexError:
-                # This handles the cases where the lazy objects returned by the catalog
-                # are structured differently than expected.
-                results = []
-        return results
-
-    @memoize
-    def _standard_results4(self):
-        results = []
-        collection = self.collection4()
-        if collection is not None:
-            results = collection.queryCatalog()
-            if self.data.limit and self.data.limit > 0:
-                results = results[:self.data.limit]
-        return results
-    
-    def collection_url2(self):
-        collection = self.collection2()
+    def collection_url(self,target_collection):
+        collection = self.collection(target_collection)
         if collection is None:
             return None
         else:
             return collection.absolute_url()
 
-    def results2(self):
+    def results(self,target_collection):
         """ Get the actual result brains from the collection. 
             This is a wrapper so that we can memoize if and only if we aren't
             selecting random items."""
         if self.data.random:
-            return self._random_results2()
+            return self._random_results(target_collection)
         else:
-            return self._standard_results2()
+            return self._standard_results(target_collection)
 
-    def _random_results2(self):
+
+    @memoize    
+    def _standard_results(self,target_collection):
         results = []
-        collection = self.collection2()
+        collection = self.collection(target_collection)
         if collection is not None:
-            """
-            Kids, do not try this at home.
-            
-            We're poking at the internals of the (lazy) catalog results to avoid
-            instantiating catalog brains unnecessarily.
-            
-            We're expecting a LazyCat wrapping two LazyMaps as the return value from
-            Products.ATContentTypes.content.topic.ATTopic.queryCatalog.  The second
-            of these contains the results of the catalog query.  We force sorting
-            off because it's unnecessary and might result in a different structure of
-            lazy objects.
-            
-            Using the correct LazyMap (results._seq[1]), we randomly pick a catalog index
-            and then retrieve it as a catalog brain using the _func method.
-            """
-            
+            limit = self.data.limit
+            if limit and limit > 0:
+                # pass on batching hints to the catalog
+                results = collection.queryCatalog(batch=True, b_size=limit)
+                if results == []:return results
+                
+                results = results._sequence
+            else:
+                results = collection.queryCatalog()
+
+        return results
+
+    def _random_results(self,target_collection):
+        # intentionally non-memoized
+        results = []
+        collection = self.collection(target_collection)
+        if collection is not None:
             results = collection.queryCatalog(sort_on=None)
+            if results is None:
+                return []
             limit = self.data.limit and min(len(results), self.data.limit) or 1
-            try:
-                results = [results._seq[1]._func(i) for i in random.sample(results._seq[1]._seq, limit)]
-            except AttributeError, IndexError:
-                # This handles the cases where the lazy objects returned by the catalog
-                # are structured differently than expected.
-                results = []
+
+            if len(results) < limit:
+                limit = len(results)
+            results = random.sample(results, limit)
+
         return results
 
     @memoize
-    def _standard_results2(self):
-        results = []
-        collection = self.collection2()
-        if collection is not None:
-            results = collection.queryCatalog()
-            if self.data.limit and self.data.limit > 0:
-                results = results[:self.data.limit]
-        return results
-
-    @memoize
-    def collection4(self):
-        """ get the collection the portlet is pointing to"""
-        
-        collection_path = self.data.target_collection4
+    def collection(self,target_collection):
+        collection_path = target_collection
         if not collection_path:
             return None
 
         if collection_path.startswith('/'):
             collection_path = collection_path[1:]
-        
+
         if not collection_path:
             return None
 
-        portal_state = getMultiAdapter((self.context, self.request), name=u'plone_portal_state')
+        portal_state = getMultiAdapter((self.context, self.request),
+                                       name=u'plone_portal_state')
         portal = portal_state.portal()
-        return portal.restrictedTraverse(collection_path, default=None)
-    
+        if isinstance(collection_path, unicode):
+            # restrictedTraverse accepts only strings
+            collection_path = str(collection_path)
 
-    @memoize
-    def collection3(self):
-        """ get the collection the portlet is pointing to"""
-        
-        collection_path = self.data.target_collection3
-        if not collection_path:
-            return None
+        result = portal.unrestrictedTraverse(collection_path, default=None)
+        if result is not None:
+            sm = getSecurityManager()
+            if not sm.checkPermission('View', result):
+                result = None
+        return result
 
-        if collection_path.startswith('/'):
-            collection_path = collection_path[1:]
-        
-        if not collection_path:
-            return None
-
-        portal_state = getMultiAdapter((self.context, self.request), name=u'plone_portal_state')
-        portal = portal_state.portal()
-        return portal.restrictedTraverse(collection_path, default=None)
-    
-    @memoize
-    def collection2(self):
-        """ get the collection the portlet is pointing to"""
-        
-        collection_path = self.data.target_collection2
-        if not collection_path:
-            return None
-
-        if collection_path.startswith('/'):
-            collection_path = collection_path[1:]
-        
-        if not collection_path:
-            return None
-
-        portal_state = getMultiAdapter((self.context, self.request), name=u'plone_portal_state')
-        portal = portal_state.portal()
-        return portal.restrictedTraverse(collection_path, default=None)
 
 
 class AddForm(base.AddForm):
@@ -457,6 +317,8 @@ class EditForm(base.EditForm):
     form_fields['target_collection'].custom_widget = UberSelectionWidget
     form_fields['target_collection2'].custom_widget = UberSelectionWidget
     form_fields['target_collection3'].custom_widget = UberSelectionWidget
-
+    form_fields['target_collection3'].custom_widget = UberSelectionWidget
+    form_fields['target_collection4'].custom_widget = UberSelectionWidget 
+        
     label = _p(u"Edit Collection Portlet")
     description = _p(u"This portlet display a listing of items from a Collection.")
