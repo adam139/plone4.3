@@ -1,6 +1,8 @@
 from zope.interface import implements
+from AccessControl import getSecurityManager
 from plone.portlets.interfaces import IPortletDataProvider
 from plone.app.portlets.portlets import base
+from plone.portlet.collection.collection import Renderer as baseRenderer
 from zope.component import getMultiAdapter
 from Acquisition import aq_inner
 
@@ -56,6 +58,13 @@ class IRollTextPortlet(IPortletDataProvider):
                        description=_a(u"Specify the maximum number of items to show in the portlet. "
                                        "Leave this blank to show all items."),
                        required=False)
+    random = schema.Bool(
+        title=_a(u"Select random items"),
+        description=_a(u"If enabled, items will be selected randomly from the "
+                      u"collection, rather than based on its sort order."),
+        required=True,
+        default=False)
+        
     roll_direc = schema.Choice(
         title=_(u"direction"),
         description=_(u"Choose the roll direction"),
@@ -86,6 +95,7 @@ class Assignment(base.Assignment):
     cssid = u""
     wordsnum = None
     limit = None
+    random = False
     roll_direc = "left"
     speed = 30
     pause = 1000
@@ -93,7 +103,7 @@ class Assignment(base.Assignment):
     
 
     def __init__(self, header=u"", target_collection=u"", show_more=True,show_dates=True,topid=u"",
-                 cssid=u"",roll_direc="left",wordsnum=6,limit=None,speed=None,pause=None,step=None):
+                 cssid=u"",roll_direc="left",wordsnum=6,limit=None,random=False,speed=None,pause=None,step=None):
         self.header = header
         self.target_collection = target_collection
         self.show_more = show_more
@@ -104,6 +114,7 @@ class Assignment(base.Assignment):
         self.topid = topid
         self.wordsnum = wordsnum
         self.limit = limit
+        self.random = random
         self.cssid = cssid
         self.roll_direc = roll_direc
 
@@ -115,7 +126,7 @@ class Assignment(base.Assignment):
         return self.header
 
 
-class Renderer(base.Renderer):
+class Renderer(baseRenderer):
     """Portlet renderer.
     
     This is registered in configure.zcml. The referenced page template is
@@ -125,89 +136,14 @@ class Renderer(base.Renderer):
 
     render = ViewPageTemplateFile('rolltextportlet.pt')
     
-    def collection_url(self):
-        collection = self.collection()
-        if collection is None:
-            return None
-        else:
-            return collection.absolute_url()
+
         
     def ifdate(self):
         if self.data.show_dates:
             return True
         else:
             return False
-    @memoize
-    def results(self):
-#        import pdb
-#        pdb.set_trace()
-        results = []
-        cols = []
-        item = {}
-        collection = self.collection()
-        if collection is not None:
-            cols = collection.queryCatalog()
-            m = self.data.limit
-            if m and m > len(cols):
-                brains = cols[:m]
-            else:
-                brains = cols
-                
-            for brain in brains:
-                item["url"] = brain.getURL()
-                tl = brain.Title
-                num = self.data.wordsnum
-                if len(tl) > num and num >0:                    
-                    tl = self.cropTitle(tl, num)                    
-                item["title"] = tl
-                item["modified"] = self.toLocalizedTime(brain.modified, date_only=True)
-                results.append(item)
-                item={}       
-                           
-        return results
-    @memoize
-    def collection(self):
-        """ get the collection the portlet is pointing to"""
-        
-        context = aq_inner(self.context)
-        collection_path = self.data.target_collection
-        if not collection_path:
-            return None
 
-        if collection_path.startswith('/'):
-            collection_path = collection_path[1:]
-        
-        if not collection_path:
-            return None
-        portal_state = getMultiAdapter((context, self.request), name=u'plone_portal_state')
-        portal = portal_state.portal()
-        return portal.unrestrictedTraverse(collection_path, default=None)
-   
-
-    def __init__(self, *args):
-        base.Renderer.__init__(self, *args)
-   
-    def cropTitle(self,text, length, ellipsis='...'):
-        context = aq_inner(self.context)
-        pview = getMultiAdapter((context,self.request),name=u"plone")
-#        pview = getMultiAdapter((self.parent(), self.request), name=u'earthqk_event_view')
-        croped = pview.cropText(text, length)
-        return croped
-    def toLocalizedTime(self, time, date_only=None, time_only=None):
-        """Convert time to localized time
-        """
-        fmt = '%Y/%m/%d %H:%M:%S'
-        datefmt = '%Y/%m/%d'
-        timefmt  = '%H:%M:%S'
-        if date_only:
-            date = time.strftime(datefmt)
-            return date
-        elif time_only:
-            time = time.strftime(timefmt)
-            return time
-        else:
-            tmp = time.strftime(fmt)
-            return tmp
     @memoize
     def render_marqueejs(self):      
         cssid = self.data.cssid
