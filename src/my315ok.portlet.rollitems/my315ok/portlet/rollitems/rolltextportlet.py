@@ -148,7 +148,7 @@ class Renderer(baseRenderer):
     def render_marqueejs(self):      
         cssid = self.data.cssid
        
-        out="""jq(document).ready(function(){rolltext(".%(mid)s");});""" % dict(mid=cssid)
+        out="""$(document).ready(function(){rolltext(".%(mid)s");});""" % dict(mid=cssid)
         return out     
 
         

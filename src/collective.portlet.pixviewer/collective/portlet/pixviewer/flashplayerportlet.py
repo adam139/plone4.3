@@ -148,7 +148,7 @@ class Renderer(base.Renderer):
         player = self.data.locid
         if player == None:
             player = u"player"
-        out = """jq(document).ready(function(){
+        out = """$(document).ready(function(){
          flowplayer("%(swfile)s","http://releases.flowplayer.org/swf/flowplayer-3.2.5.swf",
          {plugins:{pseudo: {url:'flowplayer.pseudostreaming-3.2.5.swf'}}});});""" % dict(swfile=player)
         return out

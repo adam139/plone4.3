@@ -122,7 +122,7 @@ class Renderer(baseRenderer):
             showtext = 1
         else:
             showtext = 0    
-        out="""jq(document).ready(function(){ajaxfetchimg("%(topid)s","%(url)s",".%(mid)s",%(text)s);});""" % dict(topid=topid,url=imgsrc,mid=cssid,text=showtext)
+        out="""$(document).ready(function(){ajaxfetchimg("%(topid)s","%(url)s",".%(mid)s",%(text)s);});""" % dict(topid=topid,url=imgsrc,mid=cssid,text=showtext)
         return out     
 
         
