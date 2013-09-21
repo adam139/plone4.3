@@ -2,7 +2,9 @@ from zope.interface import implements
 
 from plone.portlets.interfaces import IPortletDataProvider
 from plone.app.portlets.portlets import base
+from Acquisition import aq_inner
 
+from zope.component import getMultiAdapter
 from zope import schema
 from zope.formlib import form
 from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
@@ -90,17 +92,28 @@ class Renderer(base.Renderer):
     render = ViewPageTemplateFile('embediframeportlet.pt')
 
     @property
+    @memoize 
     def available(self):
         import urllib2
         opener = urllib2.build_opener()
         try:
-            f = opener.open("%s" % self.data.framesrc)
-#            temp = f.read()
-#            f.close()
+            f = opener.open("%s" % self.goodsrc)
+            f.close()
             return True
         except:
-            return False          
-                    
+            return False
+                  
+    @property
+    @memoize    
+    def goodsrc(self):
+
+        context = aq_inner(self.context)
+        imgsrc = self.data.framesrc
+        if  imgsrc[:4] != 'http':
+            portal_state = getMultiAdapter((context, self.request), name=u'plone_portal_state')
+            portal_url = portal_state.portal_url()          
+            return portal_url + '/' + imgsrc
+        return imgsrc                      
 
     @memoize
     def results(self):
@@ -115,7 +128,7 @@ class Renderer(base.Renderer):
             isborder = 0
         if self.available:
             out = '<iframe src="%s" width="%s" height="%s" style="%s" frameborder="%s" scrolling="%s">' \
-            % (self.data.framesrc,self.data.width,self.data.height,self.data.style,isborder,self.data.scrolling)
+            % (self.goodsrc,self.data.width,self.data.height,self.data.style,isborder,self.data.scrolling)
             out += '<p>your browser can not support ifame</p></iframe>'
         return out     
 
