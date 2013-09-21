@@ -25,6 +25,10 @@
       class=".controlpanel.My315okProductsControlPanelView"
       permission="cmf.ManagePortal" 
       />
+  <!-- Register static resource directory -->
+	<browser:resourceDirectory
+  		name="my315ok.products"
+  		directory="static" />        
   <!-- Register an extension profile to make the product installable
        in Plone -->
   <genericsetup:registerProfile
